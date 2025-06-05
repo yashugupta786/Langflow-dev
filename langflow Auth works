@@ -1,0 +1,78 @@
+ How Langflow Authentication Works
+1. User Login Flow
+Frontend (UI)
+User types username and password on the login page.
+
+The frontend sends a request to the backend endpoint /api/v1/login.
+
+Backend (login.py)
+The function login_to_get_access_token handles this request.
+
+It calls authenticate_user(username, password, db) (in utils.py).
+
+Looks up the user by username in the database.
+
+Checks that the user is active.
+
+Verifies the password against the hashed password in the DB.
+
+If correct:
+
+Generates two tokens:
+
+access_token (for short-term use)
+
+refresh_token (for re-authentication without relogin)
+
+Sets both tokens as cookies in the user's browser.
+
+Now, every further API call from the frontend sends these cookies (tokens).
+
+If wrong:
+
+Returns 401 error ("Incorrect username or password").
+
+2. Token Validation on Every API Call (utils.py)
+All backend APIs that require login use a function like get_current_user.
+
+This:
+
+Pulls the access_token from the cookie/header.
+
+Validates (decodes and checks) the JWT.
+
+Looks up the user by ID from the token.
+
+If token and user are valid, lets the API call continue; if not, returns 401 unauthorized.
+
+3. Refresh Token (login.py)
+If the short-term access_token expires, the frontend can send the refresh_token (cookie) to /api/v1/refresh.
+
+If the refresh_token is valid and not expired:
+
+Issues a new access_token and refresh_token and sets them in cookies.
+
+If not, user must log in again.
+
+4. Logout (login.py)
+When user logs out, the /api/v1/logout endpoint deletes the cookies for access_token and refresh_token.
+
+User is logged out; frontend sends no tokens on next request.
+
+5. Auto-login (login.py)
+There is an /auto_login endpoint for automatic (demo) logins if enabled in settings.
+
+Usually for development/testing.
+
+6. Passwords
+Are never sent or stored in plaintext.
+
+When a user is created (by admin or initial script), the password is hashed and stored.
+
+On login, the hash is checked, not the actual password.
+
+How These Files Map to the Flow
+File	Role
+api/v1/login.py	Handles login, refresh, logout, auto-login. Issues/sets tokens as cookies.
+services/auth/utils.py	Validates tokens, authenticates user, hashes/verifies passwords, creates tokens.
+DB model/crud files	Looks up user by username/ID, creates users, updates last login timestamps.
