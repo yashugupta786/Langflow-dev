@@ -1,0 +1,40 @@
+<!doctype html>
+<title>Dev SSO Login to Langflow</title>
+<h2>Dev SSO-mimic for Langflow</h2>
+<p>
+  <b>Enter an email and token to auto-login to Langflow.<br>
+  Open in multiple browsers/incognito to test multiple sessions.</b>
+</p>
+<form id="sso-form">
+  <label>Email: <input name="email" type="text" placeholder="your@email.com" required></label><br><br>
+  <label>Token: <input name="token" type="text" id="token-input" placeholder="token (or click randomize)" required></label>
+  <button type="button" onclick="document.getElementById('token-input').value = crypto.randomUUID()">Randomize Token</button><br><br>
+  <input type="submit" value="Login to Langflow">
+</form>
+<script>
+document.getElementById('sso-form').onsubmit = async function(e) {
+  e.preventDefault();
+  const email = this.email.value.trim();
+  const token = this.token.value.trim();
+  if (!email || !token) {
+    alert("Please provide both email and token!");
+    return;
+  }
+  // Show debug info (optional)
+  console.log("Submitting:", {email, token});
+
+  const resp = await fetch("http://localhost:7860/api/v1/gate_login", {
+    method: "POST",
+    credentials: "include",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({email, token})
+  });
+
+  if (resp.ok) {
+    window.location = "http://localhost:7860/";
+  } else {
+    const text = await resp.text();
+    alert("SSO login to Langflow failed:\n" + text);
+  }
+};
+</script>
